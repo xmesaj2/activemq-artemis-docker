@@ -127,12 +127,14 @@ else
   echo No configuration snippets found
 fi
 
-if [ "$ENABLE_JMX" ] || [ "$ENABLE_JMX_EXPORTER" ]; then
+# This should really be called ENABLE_REMOTE_JMX because local JMX is enabled via broker.xml
+if [ "$ENABLE_JMX" = "true" ]; then
   prepend_java_arg "com.sun.management.jmxremote" "-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=${JMX_PORT:-1099} -Dcom.sun.management.jmxremote.rmi.port=${JMX_RMI_PORT:-1098} -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"
   mergeXmlFiles "$CONFIG_PATH/broker.xml" /opt/assets/enable-jmx.xml "$CONFIG_PATH/broker.xml"
 fi
 
-if [ "$ENABLE_JMX_EXPORTER" ]; then
+# This only requires local JMX
+if [ "$ENABLE_JMX_EXPORTER" = "true" ]; then
   if [ -f /opt/jmx-exporter/etc-override/jmx-exporter-config.yaml ]; then
     cp /opt/jmx-exporter/etc-override/jmx-exporter-config.yaml /opt/jmx-exporter/etc/jmx-exporter-config.yaml
   fi
