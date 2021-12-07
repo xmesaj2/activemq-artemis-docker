@@ -21,21 +21,23 @@ RUN apt-get -qq -o=Dpkg::Use-Pty=0 update && \
       libaio1=0.3.110-3 \
       xmlstarlet=1.6.1-2 \
       jq=1.5+dfsg-1.3 \
-      ca-certificates=20200601~deb9u2 \
-      wget=1.18-5+deb9u2 \
-      ivy=2.4.0-3 && \
+      ivy=2.4.0-3
+
+# hadolint ignore=DL3008
+RUN apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
+      wget \
+      ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Make sure pipes are considered to detemine success, see: https://github.com/hadolint/hadolint/wiki/DL4006
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-
 # Uncompress and validate
 WORKDIR /opt
 RUN if (echo "${ACTIVEMQ_DISTRIBUTION_URL}" | grep -Eq  ".zip\$" ) ; \
     then \
-      mkdir tmp && \
-      wget "${ACTIVEMQ_DISTRIBUTION_URL}" -q -P tmp/ && \
+      mkdir -p tmp && \
+      wget "${ACTIVEMQ_DISTRIBUTION_URL}" -P tmp/ && \
       unzip -d tmp -q "tmp/*.zip" && rm -f tmp/*.zip && ls -l tmp/ && \
         mv tmp/* ./apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION} && \
         ln -s "/opt/apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}" "/opt/apache-artemis" && \
@@ -45,15 +47,15 @@ RUN if (echo "${ACTIVEMQ_DISTRIBUTION_URL}" | grep -Eq  ".zip\$" ) ; \
       echo "Only .zip format is supported when using ACTIVEMQ_DISTRIBUTION_URL" && \
       exit 2; \
     else \
-      wget "https://repository.apache.org/content/repositories/releases/org/apache/activemq/apache-artemis/${ACTIVEMQ_ARTEMIS_VERSION}/apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}-bin.tar.gz" -q && \
-      wget "https://repository.apache.org/content/repositories/releases/org/apache/activemq/apache-artemis/${ACTIVEMQ_ARTEMIS_VERSION}/apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}-bin.tar.gz.asc" -q && \
-      wget "http://apache.org/dist/activemq/KEYS" -q && \
-      gpg --no-tty --import "KEYS" && \
-      gpg --no-tty "apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}-bin.tar.gz.asc" && \
+      wget "https://repository.apache.org/content/repositories/releases/org/apache/activemq/apache-artemis/${ACTIVEMQ_ARTEMIS_VERSION}/apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}-bin.tar.gz" \
+         "https://repository.apache.org/content/repositories/releases/org/apache/activemq/apache-artemis/${ACTIVEMQ_ARTEMIS_VERSION}/apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}-bin.tar.gz.asc" \
+         "https://downloads.apache.org/activemq/KEYS" && \
+      gpg --no-tty -v --import "KEYS" && \
+      gpg --no-tty -v "apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}-bin.tar.gz.asc" && \
       tar xfz "apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}-bin.tar.gz" && \
       ln -s "/opt/apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}" "/opt/apache-artemis" && \
       rm -f "apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}-bin.tar.gz" "KEYS" "apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}-bin.tar.gz.asc"; \
-    fi
+   fi
 
 # Create broker instance
 # Per recommendation of https://activemq.apache.org/artemis/docs/latest/perf-tuning.html : -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -XX:+UseParallelOldGC 
@@ -91,34 +93,29 @@ WORKDIR /var/lib/artemis/etc
 
 # Log to tty to enable docker logs container-name
 RUN sed -i "s/logger.handlers=.*/logger.handlers=CONSOLE/g" logging.properties && \
-
 # Add JSON log handler
     echo "formatter.JSON=org.jboss.logmanager.formatters.JsonFormatter" | tee -a  logging.properties && \
     sed -i "s/-Xbootclasspath\/a:\"\(.*\)\"/-Xbootclasspath\/a:\"\1:\/opt\/apache-artemis\/lib\/javax.json-1.1.4.jar\"/g" /var/lib/artemis/bin/artemis && \
-
 # --java-options doesn't seem to work across the board on all versions adding them manually
     sed -i "s/JAVA_ARGS=\"/JAVA_ARGS=\"-Djava.net.preferIPv4Addresses=true -Djava.net.preferIPv4Stack=true -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=2 /g" ../etc/artemis.profile && \
-
 # Ports are only exposed with an explicit argument, there is no need to binding
 # the web console to localhost
     xmlstarlet ed -L -N amq="http://activemq.org/schema" \
     -u "/amq:broker/amq:web/@bind" \
     -v "http://0.0.0.0:8161" bootstrap.xml && \
-
 # In a similar fashion the jolokia access is restricted to localhost only. Disabling
 # this as in the natural environmnets for the image like Kubernetes this is problematic.
     if (echo "${ACTIVEMQ_ARTEMIS_VERSION}" | grep -Eq  "(2.[^0-3]\\.[0-9]|[^1-2]\\.[0-9]\\.[0-9]+)" ) ; then xmlstarlet ed --inplace --subnode "/restrict" --type elem -n "remote" jolokia-access.xml && xmlstarlet ed --inplace --subnode "/restrict/remote" --type elem -n host -v "0.0.0.0/0" jolokia-access.xml; fi && \
 # Remove default values for memory in artemis profile in order to let the automatic
 # Java ergonomics detection work https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/ergonomics.html
     sed -i "s/-Xm[xs][^ \"]*//g" ../etc/artemis.profile && \
-
 # For the casual run of the image make the docker-entrypoint-sh think 
 # that the performance journal calibration is already completed
     if (echo "${ACTIVEMQ_ARTEMIS_VERSION}" | grep -Eq  "(1.5\\.[3-5]|[^1]\\.[0-9]\\.[0-9]+)" ) ; then touch /var/lib/artemis/data/.perf-journal-completed; fi
 
 WORKDIR /opt/jmx-exporter
-RUN wget "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar" -q && \
-    wget "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar.sha1" -q && \
+RUN wget -v "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar" \
+     "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar.sha1" && \
     echo "$(cat "jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar.sha1")" "jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar" | sha1sum -c - && \
     rm "jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar.sha1" && \
     ln -s "/opt/jmx-exporter/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar" "/opt/jmx-exporter/jmx_prometheus_javaagent.jar"
