@@ -26,7 +26,7 @@ semver_greater_or_equal_than() {
 # In case this is running in a non standard system that automounts
 # empty volumes like OpenShift, restore the configuration into the 
 # volume
-if [ "$RESTORE_CONFIGURATION" ] && [ -z "$(ls -A ${CONFIG_PATH})" ]; then
+if [ "$RESTORE_CONFIGURATION" = "true" ] && [ -z "$(ls -A ${CONFIG_PATH})" ]; then
   cp -R "${CONFIG_PATH}"-backup/* "${CONFIG_PATH}"
   echo Configuration restored
 fi
@@ -37,7 +37,7 @@ if [ "$LOG_FORMATTER" = "JSON" ]; then
 fi
 
 # Never use in a production environment
-if [ "$DISABLE_SECURITY" ]; then
+if [ "$DISABLE_SECURITY" = "true" ]; then
     xmlstarlet ed -L \
       -N activemq="urn:activemq" \
       -N core="urn:activemq:core" \
@@ -48,61 +48,36 @@ if [ "$DISABLE_SECURITY" ]; then
 fi
 
 # Set the broker name to the host name to ease experience for external monitors and the console
-if semver_greater_or_equal_than "${ACTIVEMQ_ARTEMIS_VERSION}" 1.3.0 ; then
-  xmlstarlet ed -L \
-    -N activemq="urn:activemq" \
-    -N core="urn:activemq:core" \
-    -u "/activemq:configuration/core:core/core:name" \
-    -v "$(hostname)" ../etc/broker.xml
-fi
+xmlstarlet ed -L \
+  -N activemq="urn:activemq" \
+  -N core="urn:activemq:core" \
+  -u "/activemq:configuration/core:core/core:name" \
+  -v "$(hostname)" ../etc/broker.xml
 
 # Update users and roles with if username and password is passed as argument
-if [ "$ARTEMIS_USERNAME" ] && [ "$ARTEMIS_PASSWORD" ]; then
+if [ -n "$ARTEMIS_USERNAME" ] && [ -n "$ARTEMIS_PASSWORD" ]; then
 
   # Roles update
-
-  # 2.0.0 and later are set using the cli with a running broker
-  if semver_greater_or_equal_than "${ACTIVEMQ_ARTEMIS_VERSION}" 1.2.0 ; then
-    # From 1.2.0 on became group=users and we still set it with sed
-    sed -i "s/amq[ ]*=.*/amq=$ARTEMIS_USERNAME\\n/g" ../etc/artemis-roles.properties
-  else
-    # From 1.0.0 up to 1.1.0 the artemis roles file was user=groups
-    sed -i "s/artemis=amq/$ARTEMIS_USERNAME=amq\\n/g" ../etc/artemis-roles.properties
-  fi
+  sed -i "s/amq[ ]*=.*/amq=$ARTEMIS_USERNAME\\n/g" ../etc/artemis-roles.properties
 
   # Users update
+  HASHED_PASSWORD=$(${BROKER_HOME}/bin/artemis mask --hash "${ARTEMIS_PASSWORD}" | cut -d " " -f 2)
+  sed -i "s/artemis[ ]*=.*/$ARTEMIS_USERNAME=ENC($HASHED_PASSWORD)\\n/g" ../etc/artemis-users.properties
 
-  # 2.16.0 and later are set using the cli with a running broker
-  if semver_greater_or_equal_than "${ACTIVEMQ_ARTEMIS_VERSION}" 2.15.0 ; then
-    HASHED_PASSWORD=$(${BROKER_HOME}/bin/artemis mask --hash "${ARTEMIS_PASSWORD}" | cut -d " " -f 2)
-    sed -i "s/artemis[ ]*=.*/$ARTEMIS_USERNAME=ENC($HASHED_PASSWORD)\\n/g" ../etc/artemis-users.properties
-  elif semver_greater_or_equal_than "${ACTIVEMQ_ARTEMIS_VERSION}" 1.5.0 ; then
-    # 1.5.0 to 2.14.0 modified the users file directly and therefore didn't need a running broker
-    if ${BROKER_HOME}/bin/artemis user list | grep -Eq "\"${INITIAL_ARTEMIS_USERNAME}\"" ; then
-      $BROKER_HOME/bin/artemis user rm --user "${INITIAL_ARTEMIS_USERNAME}"
-    fi
-    if ${BROKER_HOME}/bin/artemis user list | grep -Eq "\"${ARTEMIS_USERNAME}\"" ; then
-      $BROKER_HOME/bin/artemis user rm --user "$ARTEMIS_USERNAME"
-    fi
-    $BROKER_HOME/bin/artemis user add --user "$ARTEMIS_USERNAME" --password "$ARTEMIS_PASSWORD" --role amq
-  else
-    # 1.0.0 to 1.4.0 modify the file directly with the old format
-    sed -i "s/artemis[ ]*=.*/$ARTEMIS_USERNAME=$ARTEMIS_PASSWORD\\n/g" ../etc/artemis-users.properties
-  fi
 fi
 
 # Update min memory if the argument is passed
-if [ "$ARTEMIS_MIN_MEMORY" ]; then
+if [ -n "$ARTEMIS_MIN_MEMORY" ]; then
   prepend_java_arg "-Xms" "-Xms$ARTEMIS_MIN_MEMORY"
 fi
 
 # Update max memory if the argument is passed
-if [ "$ARTEMIS_MAX_MEMORY" ]; then
+if [ -n "$ARTEMIS_MAX_MEMORY" ]; then
   prepend_java_arg "-Xmx" "-Xmx$ARTEMIS_MAX_MEMORY"
 fi
 
 # Support extra java opts from JAVA_OPTS env
-if [ "$JAVA_OPTS" ]; then
+if [ -n "$JAVA_OPTS" ]; then
   prepend_java_arg "$JAVA_OPTS" "$JAVA_OPTS"
 fi
 
@@ -208,11 +183,7 @@ performanceJournal() {
   fi
 }
 
-if semver_greater_or_equal_than "${ACTIVEMQ_ARTEMIS_VERSION}" 1.5.3 ; then 
-  performanceJournal
-else
-  echo "Ignoring any performance journal parameter as version predates it: ${ACTIVEMQ_ARTEMIS_VERSION}"
-fi
+performanceJournal
 
 # Add BROKER_CONFIGS env variable to startup options
 prepend_java_arg "BROKER_CONFIGS" "\$BROKER_CONFIGS"

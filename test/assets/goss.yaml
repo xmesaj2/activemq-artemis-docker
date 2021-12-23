@@ -137,10 +137,12 @@ file:
     group: artemis
     filetype: file
     contains:
+{{ if (.Env.BASE_IMAGE | regexMatch "(openjdk\\:8.*)") }}
       - "-Djava.net.preferIPv4Addresses=true"
       - "-XX:+UnlockExperimentalVMOptions"
       - "-XX:+UseCGroupMemoryLimitForHeap"
       - "-XX:MaxRAMFraction=2"
+{{ end }}
 {{if getEnv "JAVA_OPTS" }}
       - "-Djavax.net.ssl.keyStore=/var/lib/artemis/etc/keystore.jks"
       - "-Djavax.net.ssl.keyStorePassword=changeit"
