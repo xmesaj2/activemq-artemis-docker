@@ -68,7 +68,6 @@ RUN  "/opt/apache-artemis-${ACTIVEMQ_ARTEMIS_VERSION}/bin/artemis" create artemi
         --require-login \
         --cluster-user artemisCluster \
         --cluster-password simetraehcaparetsulc
-#    fi
 
 # Using KUBE_PING 0.9.3. Can't upgrade to 1.x.x as Artemis uses JGroups 3.3.x 
 # https://github.com/jgroups-extras/jgroups-kubernetes/issues/30
