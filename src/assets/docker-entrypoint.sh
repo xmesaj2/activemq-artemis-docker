@@ -10,6 +10,7 @@ export BROKER_HOME OVERRIDE_PATH CONFIG_PATH
 # $1 New string to be prepended to JAVA_ARGS
 # $2 Deduplication string
 prepend_java_arg() {
+  # shellcheck disable=SC1117
   sed -i "\#$1#!s#^\([[:space:]]\)*JAVA_ARGS=\"#\\1JAVA_ARGS=\"$2 #g" $CONFIG_PATH/artemis.profile
 }
 
