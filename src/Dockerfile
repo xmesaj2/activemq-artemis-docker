@@ -4,7 +4,7 @@
 ## Build Image                                           #
 ##########################################################
 ARG BASE_IMAGE
-FROM openjdk:11.0.13-jre-buster as builder
+FROM openjdk:11.0.14-jre-bullseye as builder
 LABEL maintainer="Actively maintained but not actively supported - use at your own risk!"
 
 ARG ACTIVEMQ_ARTEMIS_VERSION
@@ -19,13 +19,15 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get -qq -o=Dpkg::Use-Pty=0 update && \
     apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
-      libaio1=0.3.112-3 \
-      xmlstarlet=1.6.1-2 \
-      jq=1.5+dfsg-2+b1 \
-      ivy=2.4.0-5
+      libaio1=0.3.112-9 \
+      xmlstarlet=1.6.1-2.1 \
+      jq=1.6-2.1 \
+      ivy=2.5.0-1 && \
+    rm -rf /var/lib/apt/lists/*
 
 # hadolint ignore=DL3008
-RUN apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
+RUN apt-get -qq -o=Dpkg::Use-Pty=0 update && \
+    apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
       wget \
       ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -147,13 +149,23 @@ RUN groupadd -g 1000 -r artemis && useradd -r -u 1000 -g artemis artemis && \
           gettext-base=0.19.8.1-9 \
           dumb-init=1.2.2-1.1 \
           procps=2:3.3.15-2 ; \
+    elif [ "${BASE_IMAGE}" != "${BASE_IMAGE%bullseye}" ]; then \
+      apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
+          libaio1=0.3.112-9 \
+          xmlstarlet=1.6.1-2.1 \
+          jq=1.6-2.1 \
+          gettext-base=0.21-4 \
+          dumb-init=1.2.5-1 \
+          procps=2:3.3.17-5 ; \
     else \
-      echo "Only buster or stretch supported as base image" && \
+      echo "Only bullseye or buster or stretch supported as base image" && \
       exit 2; \
-    fi
+    fi && \
+    rm -rf /var/lib/apt/lists/*
 
 # hadolint ignore=DL3008
-RUN apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
+RUN apt-get -qq -o=Dpkg::Use-Pty=0 update && \
+    apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
       ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
