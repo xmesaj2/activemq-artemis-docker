@@ -10,7 +10,7 @@ Runs Zulu OpenJDK 18 and Artemis 2.23.1.
 ### Build
 
 ```console
-cd src && docker build --build-arg ACTIVEMQ_ARTEMIS_VERSION=2.23.1 --build-arg BASE_IMAGE=azul/zulu-openjdk-debian:11 -t xmesaj2/activemq-artemis:2.23.1 .
+cd src && docker build --build-arg ACTIVEMQ_ARTEMIS_VERSION=2.23.1 --build-arg BASE_IMAGE=azul/zulu-openjdk-debian:18 -t xmesaj2/activemq-artemis:2.23.1 .
 ```
 
 ### Run
@@ -18,6 +18,10 @@ cd src && docker build --build-arg ACTIVEMQ_ARTEMIS_VERSION=2.23.1 --build-arg B
 ```console
 docker run --rm -it  -p 1883:1883/tcp -p 5445:5445/tcp -p 5672:5672/tcp -p 61613:61613/tcp -p 61616:61616/tcp -p 8161:8161/tcp -p 9404:9404/tcp xmesaj2/activemq-artemis:2.23.1 
 ```
+
+http://127.0.0.1:8161/console
+
+### Original note
 
 Since the author of the ["vromero"](https://github.com/vromero/activemq-artemis-docker) image - well done to him - stopped maintaining it at v2.16 I forked it here and will release new Artemis versions at [Docker Hub](https://hub.docker.com/r/qoricode/activemq-artemis) as they are released on "reasonable endeavours". Note I'm not planning to maintain the Alpine ones, only the Debian ones.
 
