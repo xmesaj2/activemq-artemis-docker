@@ -2,16 +2,13 @@ language: bash
 services: docker
 
 env:
-  - VERSION=2.17.0
-  - VERSION=2.18.0
-  - VERSION=2.19.0
-  - VERSION=2.20.0
+  - VERSION=2.13.1
 
 before_install:
   - curl -L https://goss.rocks/install | sudo sh
 
 install:
-  - git clone https://github.com/qoricode/activemq-artemis-docker.git ~/activemq-artemis-docker
+  - git clone https://github.com/xmesaj2/activemq-artemis-docker.git ~/activemq-artemis-docker
 
 before_script:
   - versionTag="${VERSION}${VARIANT:+-${VARIANT}}"

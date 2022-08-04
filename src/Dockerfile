@@ -3,13 +3,12 @@
 ##########################################################
 ## Build Image                                           #
 ##########################################################
-ARG BASE_IMAGE
-FROM openjdk:11.0.14-jre-bullseye as builder
+ARG BASE_IMAGE=azul/zulu-openjdk-debian:11
+FROM $BASE_IMAGE as builder
 LABEL maintainer="Actively maintained but not actively supported - use at your own risk!"
 
-ARG ACTIVEMQ_ARTEMIS_VERSION
+ARG ACTIVEMQ_ARTEMIS_VERSION=2.23.1
 ARG ACTIVEMQ_DISTRIBUTION_URL
-ARG BASE_IMAGE
 ENV JMX_EXPORTER_VERSION=0.3.1
 ENV JGROUPS_KUBERNETES_VERSION=0.9.3
 ENV JAVAX_JSON_VERSION=1.1.4
@@ -22,6 +21,7 @@ RUN apt-get -qq -o=Dpkg::Use-Pty=0 update && \
       libaio1=0.3.112-9 \
       xmlstarlet=1.6.1-2.1 \
       jq=1.6-2.1 \
+      gnupg=2.2.27-2+deb11u2 \
       ivy=2.5.0-1 && \
     rm -rf /var/lib/apt/lists/*
 
@@ -89,10 +89,6 @@ RUN sed -i "s/logger.handlers=.*/logger.handlers=CONSOLE/g" logging.properties &
     echo "formatter.JSON=org.jboss.logmanager.formatters.JsonFormatter" | tee -a  logging.properties && \
     sed -i "s/-Xbootclasspath\/a:\"\(.*\)\"/-Xbootclasspath\/a:\"\1:\/opt\/apache-artemis\/lib\/javax.json-1.1.4.jar\"/g" /var/lib/artemis/bin/artemis && \
     sed -i "s/JAVA_ARGS=\"/JAVA_ARGS=\"-Djava.net.preferIPv4Addresses=true -Djava.net.preferIPv4Stack=true /g" artemis.profile && \
-# --java-options doesn't seem to work across the board on all versions adding them manually
-    if [ "${BASE_IMAGE}" != "${BASE_IMAGE#openjdk:8}" ]; then \
-      sed -i "s/JAVA_ARGS=\"/JAVA_ARGS=\"-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=2 /g" ../etc/artemis.profile; \
-    fi && \
 # Ports are only exposed with an explicit argument, there is no need to binding
 # the web console to localhost. Note in v2.20 the structure changed.
     sed -i 's#//localhost\:#//0.0.0.0:#' bootstrap.xml && \
@@ -102,12 +98,7 @@ RUN sed -i "s/logger.handlers=.*/logger.handlers=CONSOLE/g" logging.properties &
     <host>172.16.0.0/12</host>\n    <host>192.168.0.0/16</host>\n  </remote>#' jolokia-access.xml && \
 # Remove default values for memory in artemis profile in order to let the automatic
 # Java ergonomics detection work https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/ergonomics.html
-    sed -i "s/-Xm[xs][^ \"]*//g" artemis.profile && \
-# See https://issues.apache.org/jira/browse/ARTEMIS-3616
-    if [ "${ACTIVEMQ_ARTEMIS_VERSION}" = "2.20.0" ]; then \
-       wget "https://repo1.maven.org/maven2/io/netty/netty-transport-native-unix-common/4.1.72.Final/netty-transport-native-unix-common-4.1.72.Final.jar" && \
-       mv netty-transport-native-unix-common-4.1.72.Final.jar ../lib ; \
-    fi
+    sed -i "s/-Xm[xs][^ \"]*//g" artemis.profile
 
 WORKDIR /opt/jmx-exporter
 RUN wget -v "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${JMX_EXPORTER_VERSION}/jmx_prometheus_javaagent-${JMX_EXPORTER_VERSION}.jar" \
@@ -124,8 +115,8 @@ COPY assets/jmx-exporter-config.yaml /opt/jmx-exporter/etc/
 # hadolint ignore=DL3006
 FROM $BASE_IMAGE
 LABEL maintainer="Actively maintained but not actively supported - use at your own risk!"
-ARG ACTIVEMQ_ARTEMIS_VERSION
-ARG BASE_IMAGE
+ARG ACTIVEMQ_ARTEMIS_VERSION=2.23.1
+ARG BASE_IMAGE=azul/zulu-openjdk-debian:11
 ENV ACTIVEMQ_ARTEMIS_VERSION=$ACTIVEMQ_ARTEMIS_VERSION
 ENV BASE_IMAGE=$BASE_IMAGE
 
@@ -133,34 +124,13 @@ ENV BASE_IMAGE=$BASE_IMAGE
 # hadolint ignore=DL3009
 RUN groupadd -g 1000 -r artemis && useradd -r -u 1000 -g artemis artemis && \
     apt-get -qq -o=Dpkg::Use-Pty=0 update && \
-    if [ "${BASE_IMAGE}" != "${BASE_IMAGE%stretch}" ]; then \
-      apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
-          libaio1=0.3.110-3 \
-          xmlstarlet=1.6.1-2 \
-          jq=1.5+dfsg-1.3 \
-          gettext-base=0.19.8.1-2+deb9u1 \
-          dumb-init=1.2.0-1 \
-          procps=2:3.3.12-3+deb9u1 ; \
-    elif [ "${BASE_IMAGE}" != "${BASE_IMAGE%buster}" ]; then \
-      apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
-          libaio1=0.3.112-3 \
-          xmlstarlet=1.6.1-2 \
-          jq=1.5+dfsg-2+b1 \
-          gettext-base=0.19.8.1-9 \
-          dumb-init=1.2.2-1.1 \
-          procps=2:3.3.15-2 ; \
-    elif [ "${BASE_IMAGE}" != "${BASE_IMAGE%bullseye}" ]; then \
-      apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
+    apt-get -qq -o=Dpkg::Use-Pty=0 install -y --no-install-recommends \
           libaio1=0.3.112-9 \
           xmlstarlet=1.6.1-2.1 \
           jq=1.6-2.1 \
           gettext-base=0.21-4 \
           dumb-init=1.2.5-1 \
-          procps=2:3.3.17-5 ; \
-    else \
-      echo "Only bullseye or buster or stretch supported as base image" && \
-      exit 2; \
-    fi && \
+          procps=2:3.3.17-5 && \
     rm -rf /var/lib/apt/lists/*
 
 # hadolint ignore=DL3008

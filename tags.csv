@@ -1,7 +1,2 @@
-Repository,Tag,Base Image,Aliases,Dockerfile
-qoricode/activemq-artemis,2.17.0,openjdk:11.0.14-jre-bullseye,qoricode/activemq-artemis:2.17-latest qoricode/activemq-artemis:2-latest qoricode/activemq-artemis:latest,Dockerfile
-qoricode/activemq-artemis,2.18.0,openjdk:11.0.14-jre-bullseye,qoricode/activemq-artemis:2.18-latest qoricode/activemq-artemis:2-latest qoricode/activemq-artemis:latest,Dockerfile
-qoricode/activemq-artemis,2.19.0,openjdk:11.0.14-jre-bullseye,qoricode/activemq-artemis:2.19-latest qoricode/activemq-artemis:2-latest qoricode/activemq-artemis:latest,Dockerfile
-qoricode/activemq-artemis,2.20.0,openjdk:11.0.14-jre-bullseye,qoricode/activemq-artemis:2.20-latest qoricode/activemq-artemis:2-latest qoricode/activemq-artemis:latest,Dockerfile
-qoricode/activemq-artemis,2.21.0,openjdk:11.0.14-jre-bullseye,qoricode/activemq-artemis:2.21-latest qoricode/activemq-artemis:2-latest qoricode/activemq-artemis:latest,Dockerfile
-qoricode/activemq-artemis,2.22.0,openjdk:11.0.15-jre-bullseye,qoricode/activemq-artemis:2.22-latest qoricode/activemq-artemis:2-latest qoricode/activemq-artemis:latest,Dockerfile
+Repository              , Tag   , Base Image                        , Aliases                                                                                               , Dockerfile
+xmesaj2/activemq-artemis, 2.23.1, azul/zulu-openjdk-debian:11-latest, xmesaj2/activemq-artemis:2.23-latest xmesaj2/activemq-artemis:2-latest xmesaj2/activemq-artemis:latest, Dockerfile
