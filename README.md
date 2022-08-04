@@ -5,7 +5,7 @@
 This is a fork of ["qoricode"](https://github.com/qoricode/activemq-artemis-docker) repo for running using OpenJDK Zulu distribution, which supports arm64 (Apple Silicon).
 I have also broken most of Docker Hub stuff as I don't need all of this personally.
 
-Runs Zulu OpenJDK 11 and Artemis 2.23.1.
+Runs Zulu OpenJDK 18 and Artemis 2.23.1.
 
 ### Build
 

@@ -1,2 +1,2 @@
-Repository              , Tag   , Base Image                        , Aliases                                                                                               , Dockerfile
-xmesaj2/activemq-artemis, 2.23.1, azul/zulu-openjdk-debian:11-latest, xmesaj2/activemq-artemis:2.23-latest xmesaj2/activemq-artemis:2-latest xmesaj2/activemq-artemis:latest, Dockerfile
+Repository              , Tag   , Base Image                 , Aliases                                                                                               , Dockerfile
+xmesaj2/activemq-artemis, 2.23.1, azul/zulu-openjdk-debian:18, xmesaj2/activemq-artemis:2.23-latest xmesaj2/activemq-artemis:2-latest xmesaj2/activemq-artemis:latest, Dockerfile

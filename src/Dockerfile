@@ -3,7 +3,7 @@
 ##########################################################
 ## Build Image                                           #
 ##########################################################
-ARG BASE_IMAGE=azul/zulu-openjdk-debian:11
+ARG BASE_IMAGE=azul/zulu-openjdk-debian:18
 FROM $BASE_IMAGE as builder
 LABEL maintainer="Actively maintained but not actively supported - use at your own risk!"
 
@@ -116,7 +116,7 @@ COPY assets/jmx-exporter-config.yaml /opt/jmx-exporter/etc/
 FROM $BASE_IMAGE
 LABEL maintainer="Actively maintained but not actively supported - use at your own risk!"
 ARG ACTIVEMQ_ARTEMIS_VERSION=2.23.1
-ARG BASE_IMAGE=azul/zulu-openjdk-debian:11
+ARG BASE_IMAGE=azul/zulu-openjdk-debian:18
 ENV ACTIVEMQ_ARTEMIS_VERSION=$ACTIVEMQ_ARTEMIS_VERSION
 ENV BASE_IMAGE=$BASE_IMAGE
 

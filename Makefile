@@ -20,7 +20,7 @@ getFullTagNameFromTag=$(call lookupRepositoryFromTag,$1):$(call getVersionFromTa
 
 build_%:
 	@cd src && \
-    docker build --build-arg ACTIVEMQ_ARTEMIS_VERSION=2.23.1 --build-arg BASE_IMAGE=azul/zulu-openjdk-debian:11 -t xmesaj2/activemq-artemis:2.23.1 .
+    docker build --build-arg ACTIVEMQ_ARTEMIS_VERSION=2.23.1 --build-arg BASE_IMAGE=azul/zulu-openjdk-debian:18 -t xmesaj2/activemq-artemis:2.23.1 .
 tag_%:
 	@for alias in $(call lookupÀliasesFromTag,$*); do docker tag $(call getFullTagNameFromTag,$*) $$alias ; done
 
